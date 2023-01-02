@@ -1,0 +1,47 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Stylelabs.M.Framework.Essentials.LoadConfigurations;
+using Stylelabs.M.Base.Querying;
+using Stylelabs.M.Base.Querying.Linq;
+using Stylelabs.M.Sdk.Contracts.Querying;
+using Stylelabs.M.Base.Querying.Filters;
+
+int total = default;
+CultureInfo defaultCulture = await MClient.Cultures.GetDefaultCultureAsync();
+
+var query = new Query
+    {
+        Filter = new CompositeQueryFilter()
+            {
+                Children = new QueryFilter[] {
+                    new DefinitionQueryFilter
+                    {
+                        Name =  "M.Asset"
+                    },
+                    new PropertyQueryFilter {
+                        Property = "BatchId",
+                        Value = "BatchId",
+                        DataType = FilterDataType.String
+                    }
+                },
+                CombineMethod = CompositeFilterOperator.And
+            }
+    };
+
+var result = await MClient.Querying.QueryIdsAsync(query);
+long totalNumberInCH = result.TotalNumberOfResults;
+MClient.Logger.Info($"Total Number of  {totalNumberInCH}");
+
+IIdIterator iterator = MClient.Querying.CreateEntityIdIterator(query);
+while (await iterator.MoveNextAsync()) 
+{
+    var entities = iterator.Current.Items;
+    foreach (var item in entities) 
+    {
+        await MClient.Entities.DeleteAsync(item);
+        ++total;
+        MClient.Logger.Info($"{item} deleted.");
+        MClient.Logger.Info($"Total removed - {total}");
+    }
+}
